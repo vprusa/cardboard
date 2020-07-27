@@ -89,7 +89,11 @@ class HelloCardboardApp {
    */
   void SwitchViewer();
 
- private:
+  jfloatArray GetMatrix(JNIEnv * env, long location);
+
+  float projection_matrices_[2][16];
+
+private:
   /**
    * Default near clip plane z-axis coordinate.
    */
@@ -168,7 +172,6 @@ class HelloCardboardApp {
   int screen_width_;
   int screen_height_;
 
-  float projection_matrices_[2][16];
   float eye_matrices_[2][16];
 
   GLuint depthRenderBuffer_;  // depth buffer
@@ -188,12 +191,22 @@ class HelloCardboardApp {
 
   TexturedMesh room_;
   Texture room_tex_;
+//  Texture test_tex_;
 
   std::vector<TexturedMesh> target_object_meshes_;
   std::vector<Texture> target_object_not_selected_textures_;
   std::vector<Texture> target_object_selected_textures_;
   int cur_target_object_;
-};
+//        Texture test_tex_;
+    TexturedMesh test_mesh_;
+    Texture test_tex_;
+
+  GLuint gvPositionHandle;
+  GLuint gvColorHandle;
+  GLuint texture_color;            // distortion texture
+
+  void DrawTest();
+    };
 
 }  // namespace ndk_hello_cardboard
 

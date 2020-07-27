@@ -15,7 +15,7 @@
  */
 package com.google.cardboard.sdk.deviceparams;
 
-import android.support.annotation.Nullable;
+import androidx.annotation.Nullable;
 import android.util.Log;
 import com.google.cardboard.proto.CardboardDevice;
 import com.google.protobuf.ExtensionRegistryLite;

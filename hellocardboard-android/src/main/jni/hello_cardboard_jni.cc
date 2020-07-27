@@ -35,6 +35,10 @@ inline ndk_hello_cardboard::HelloCardboardApp* native(jlong ptr) {
   return reinterpret_cast<ndk_hello_cardboard::HelloCardboardApp*>(ptr);
 }
 
+inline jfloatArray nativeJFloatArray (float *ptr) {
+  return reinterpret_cast<jfloatArray>(ptr);
+}
+
 JavaVM* javaVm;
 
 }  // anonymous namespace
@@ -85,4 +89,17 @@ JNI_METHOD(void, nativeSwitchViewer)
   native(native_app)->SwitchViewer();
 }
 
+JNI_METHOD(jfloatArray, getMyMatrix)
+(JNIEnv* env, jobject obj, jlong native_app, jlong location) {
+  jfloatArray result = native(native_app)->GetMatrix(env, location);
+//  return nativeJFloatArray(result);
+  return result;
+}
+
 }  // extern "C"
+//extern "C"
+//JNIEXPORT void JNICALL
+//Java_com_google_cardboard_VrActivity_GetMatrix(JNIEnv *env, jobject thiz, jlong native_app,
+//                                               jint location) {
+//   TODO: implement GetMatrix()
+//}
