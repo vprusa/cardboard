@@ -437,12 +437,39 @@ static const GLfloat g_vertex_buffer_data[] = {
   0.0f,  1.0f, -1.0f,
 };
 
-jfloatArray HelloCardboardApp::GetMatrix(JNIEnv * env, long location) {
-//  return projection_matrices_[0];
-  jfloatArray result = env->NewFloatArray(16);
-//  float * jfloatArrayData = new float[16];
-  float * jfloatArrayData = projection_matrices_[0];
-  env->SetFloatArrayRegion(result, 0, 16, jfloatArrayData);
+float * HelloCardboardApp::GetMatrixAs(MatrixId location){
+  switch (location){
+    case MatrixId::m2x16_projection_matrices_left:
+      return projection_matrices_[0];
+    case MatrixId::m2x16_projection_matrices_right:
+      return projection_matrices_[1];
+    case MatrixId::m2x16_eye_matrices_left:
+      return eye_matrices_[0];
+    case MatrixId::m2x16_eye_matrices_right:
+      return eye_matrices_[1];
+    case MatrixId::m4x4_head_view:
+      return *head_view_.m;
+    case MatrixId::m4x4_model_target:
+      return *model_target_.m;
+    case MatrixId::m4x4_modelview_projection_room:
+      return *modelview_projection_room_.m;
+    case MatrixId::m4x4_modelview_projection_target:
+      return *modelview_projection_target_.m;
+    default:
+      float * empty = new float[MATRIX_SIZE];
+      for(int i = 0 ; i < MATRIX_SIZE; i++){
+        empty[i] = 0.0f;
+      }
+      return empty;
+  }
+}
+
+// https://stackoverflow.com/questions/25011597/convert-float-to-jfloatarray-using-jni/25012075
+jfloatArray HelloCardboardApp::GetMatrix(JNIEnv * env, MatrixId location) {
+  float * jfloatArrayData = GetMatrixAs(location);
+  jfloatArray result = env->NewFloatArray(MATRIX_SIZE);
+  env->SetFloatArrayRegion(result, 0, MATRIX_SIZE, jfloatArrayData);
+//  free(jfloatArrayData);
   return result;
 //  return ;
 //    return 0;

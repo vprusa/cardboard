@@ -163,6 +163,18 @@ public class VrActivity extends AppCompatActivity implements PopupMenu.OnMenuIte
     return shader;
   }
 
+  public enum MatrixId {
+    //      : unsigned long
+    /* ... values go here ... */
+    m2x16_projection_matrices_left,
+    m2x16_projection_matrices_right,
+    m2x16_eye_matrices_left,
+    m2x16_eye_matrices_right,
+    m4x4_head_view,
+    m4x4_model_target,
+    m4x4_modelview_projection_target,
+    m4x4_modelview_projection_room
+  };
 
   public class MyGLRenderer implements GLSurfaceView.Renderer {
 
@@ -336,14 +348,10 @@ public class VrActivity extends AppCompatActivity implements PopupMenu.OnMenuIte
 
     }
 
+
     public void onDrawFrame(GL10 unused) {
       nativeOnDrawFrame(nativeApp);
-      float [] projectionMatrix = getMyMatrix(nativeApp,0);
-      int xxx = 0;
-      xxx++;
-      if(xxx > 0){
-
-      }
+//      float [] projectionMatrix = getMyMatrix(nativeApp,0);
 
 //      projectionMatrix;
       /*
@@ -380,13 +388,13 @@ public class VrActivity extends AppCompatActivity implements PopupMenu.OnMenuIte
 //      GLES20.glClear(GLES20.GL_COLOR_BUFFER_BIT | GLES20.GL_DEPTH_BUFFER_BIT);
       GLES20.glClear( GLES20.GL_DEPTH_BUFFER_BIT);
 
-      float eye_matrices_[][] = new float[2][16];
-      float projection_matrices_[][] = new float[2][16];
-      float  head_view_ar[] = new float[16];
+//      float eye_matrices_[][] = new float[2][16];
+//      float projection_matrices_[][] = new float[2][16];
+//      float  head_view_ar[] = new float[16];
 //      Matrix.setLookAtM(viewMatrix, 0, 0, 0, -3, 0f, 0f, 0f, 0f, 1.0f, 0.0f);
-      Matrix.setLookAtM(head_view_ar, 0, 0, 0, -3, 0f, 0f, 0f, 0f, 1.0f, 0.0f);
+//      Matrix.setLookAtM(head_view_ar, 0, 0, 0, -3, 0f, 0f, 0f, 0f, 1.0f, 0.0f);
 
-      Matrix4f head_view_ = new Matrix4f(head_view_ar);
+//      Matrix4f head_view_ = new Matrix4f(head_view_ar);
 
 
       // Draw eyes views
@@ -394,50 +402,54 @@ public class VrActivity extends AppCompatActivity implements PopupMenu.OnMenuIte
       int screen_height_ = glView.getHeight();
       int kLeft = 0;
       for (int eye = 0; eye < 2; ++eye) {
-        GLES20.glViewport((eye == kLeft ? 0 : screen_width_ / 2), 0, (screen_width_ / 2), screen_height_);
-        float eye_matrix_ar[] = { 1f, 0f, 0f, 0f,
-        0f, 1f, 0f, 0f,
-        0f, 0f, 1f, 0f,
-        0.0299999993f, 0f, 0f, 1f};
+//        float eye_matrix_ar[] =
+//        { 1f, 0f, 0f, 0f,
+//          0f, 1f, 0f, 0f,
+//          0f, 0f, 1f, 0f,
+//          0.0299999993f, 0f, 0f, 1f};
 //        Matrix4f eye_matrix = GetMatrixFromGlArray(eye_matrices_[eye]);
 //        Matrix4f eye_matrix = new Matrix4f(eye_matrices_[eye]);
 //        Matrix4f eye_matrix = new Matrix4f(eye_matrix_ar);
 
 //        Matrix4f eye_view = eye_matrix * head_view_;
 //        Matrix4f eye_view_ = new Matrix4f(eye_matrices_[eye]);
-        Matrix4f eye_view_ = new Matrix4f(eye_matrix_ar);
-        eye_view_.multiply(head_view_);
+//        Matrix4f eye_view_ = new Matrix4f(eye_matrix_ar);
+//        eye_view_.multiply(head_view_);
 //        Matrix4f eye_view = eye_matrix * head_view_;
-        Matrix4f eye_view = eye_view_;
+//        Matrix4f eye_view = eye_view_;
 
-        /*
-        float proj_mat_ar[][] = new float[2][]{new float[16] {
-          1.21373904,0,0,0,0,1.19175363,0,0,0,0,0.0184479337,0,-1.002002,-1,0,0,-0.2002002,0
-        }, new float[16]{
-          1.21373904,0,0,0,0,1.19175363,-0.0184479337,0,-1.002002,-1,0,0,-0.2002002,0
-        }};
-         */
-        float proj_mat_ar[] = { 1.21373904f,0f,0f,0f,0f,1.19175363f,0f,0f,0f,0f,0.0184479337f,0f,
-                -1.002002f,-1f,0f,0f,-0.2002002f,0f};
+//        float proj_mat_ar[][] = new float[2][]{new float[16] {
+//          1.21373904,0,0,0,0,1.19175363,0,0,0,0,0.0184479337,0,-1.002002,-1,0,0,-0.2002002,0
+//        }, new float[16]{
+//          1.21373904,0,0,0,0,1.19175363,-0.0184479337,0,-1.002002,-1,0,0,-0.2002002,0
+//        }};
+//        float proj_mat_ar[] = { 1.21373904f,0f,0f,0f,0f,1.19175363f,0f,0f,0f,0f,0.0184479337f,0f,
+//                -1.002002f,-1f,0f,0f,-0.2002002f,0f};
 //        Matrix4f projection_matrix = GetMatrixFromGlArray(projection_matrices_[eye]);
 
 //        Matrix4f projection_matrix = new Matrix4f(projection_matrices_[eye]);
-        Matrix4f projection_matrix = new Matrix4f(proj_mat_ar);
+//        Matrix4f projection_matrix = new Matrix4f(proj_mat_ar);
 //        Matrix4f modelview_target = eye_view * model_target_;
-        Matrix4f modelview_target = eye_view;
-        projection_matrix.multiply(modelview_target);
+//        Matrix4f modelview_target = eye_view;
+//        projection_matrix.multiply(modelview_target);
 //        Matrix4f modelview_projection_target_ = projection_matrix * modelview_target;
 //        Matrix4f modelview_projection_target_ = projection_matrix;
-        Matrix4f modelview_projection_target_ = new Matrix4f(new float[]{
+//        Matrix4f modelview_projection_target_ = new Matrix4f(new float[]{
 //            1.20618272f, -0.130267218f, -0.041500695f, -0.0414177775f,
 //            0.0344886705f, 0.560866952f, -0.883972883f, -0.882206678f,
 //            -0.132048339f, -1.04342484f, -0.469976336f, -0.469037324f,
 //            -0.287455887f, -2.68457794f, -1.22704637f, -1.02479458f
+        /*
         1.20017862f, 0.178510413f, -0.0119997356f, -0.0119757606f,
         0.180390149f, -1.17160356f, 0.104924269f, 0.104714632f,
         -0.0230929889f, 0.125520974f, 0.996420919f, 0.994430065f,
         -0.0420216545f, 0.360829681f, 2.19802284f, 2.39343119f
-        });
+         */
+//        });
+
+
+//        float[] nativeMatrix = getMyMatrix(nativeApp,1);
+//        modelview_projection_target_ = new Matrix4f(nativeMatrix);
 //        modelview_projection_target_ = projection_matrix * modelview_target;
 //        modelview_projection_room_ = projection_matrix * eye_view;
 
@@ -449,6 +461,53 @@ public class VrActivity extends AppCompatActivity implements PopupMenu.OnMenuIte
         // Calculate the projection and view transformation
 //        Matrix.multiplyMM(vPMatrix, 0, projectionMatrix, 0, viewMatrix, 0);
 
+
+
+        // Draw eyes views
+//        glViewport(eye == kLeft ? 0 : screen_width_ / 2, 0, screen_width_ / 2,
+//                screen_height_);
+
+
+
+
+        GLES20.glViewport((eye == kLeft ? 0 : screen_width_ / 2), 0, (screen_width_ / 2), screen_height_);
+
+        /*
+        float[] eye_matrices_ = getMyMatrix(nativeApp, (eye == 0 ?
+                MatrixId.m2x16_eye_matrices_left.ordinal() :
+                MatrixId.m2x16_eye_matrices_right.ordinal()
+        ));
+         */
+
+        float[] eye_matrices_ = getNativeMatrix(nativeApp, (eye == 0 ?
+                        MatrixId.m2x16_eye_matrices_left.ordinal() :
+                        MatrixId.m2x16_eye_matrices_right.ordinal()
+                ));
+
+        float[] head_view_ = getNativeMatrix(nativeApp, MatrixId.m4x4_head_view.ordinal());
+
+
+        Matrix4f eye_matrix = new Matrix4f(eye_matrices_);
+        Matrix4f eye_view = new Matrix4f(eye_matrix.getArray());
+        eye_view.multiply(new Matrix4f(head_view_));
+
+        float[] projection_matrices_ = getNativeMatrix(nativeApp, (eye == 0 ?
+                MatrixId.m2x16_projection_matrices_left.ordinal() :
+                MatrixId.m2x16_projection_matrices_right.ordinal()
+        ));
+
+        Matrix4f projection_matrix = new Matrix4f(projection_matrices_);
+//        Matrix4x4 modelview_target = eye_view * model_target_;
+        Matrix4f modelview_target = new Matrix4f(eye_view.getArray());
+//        modelview_target.multiply();
+        Matrix4f modelview_projection_target_ = new Matrix4f(projection_matrix.getArray());
+        modelview_projection_target_.multiply(modelview_target);
+//        eye_view * model_target_;
+//        modelview_projection_target_ = projection_matrix * modelview_target;
+//        modelview_projection_room_ = projection_matrix * eye_view;
+
+        // Draw room and target
+//          DrawWorld();
 
         // Draw shape
         l.draw(modelview_projection_target_.getArray());
@@ -924,5 +983,5 @@ public class VrActivity extends AppCompatActivity implements PopupMenu.OnMenuIte
 
   private native void nativeSwitchViewer(long nativeApp);
 
-  private native float[] getMyMatrix(long nativeApp, long location);
+  private native float[] getNativeMatrix(long nativeApp, int location);
 }

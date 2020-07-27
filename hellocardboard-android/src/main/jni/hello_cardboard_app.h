@@ -89,9 +89,22 @@ class HelloCardboardApp {
    */
   void SwitchViewer();
 
-  jfloatArray GetMatrix(JNIEnv * env, long location);
+  enum MatrixId {
+//      : unsigned long
+    /* ... values go here ... */
+    m2x16_projection_matrices_left,
+    m2x16_projection_matrices_right,
+    m2x16_eye_matrices_left,
+    m2x16_eye_matrices_right,
+    m4x4_head_view,
+    m4x4_model_target,
+    m4x4_modelview_projection_target,
+    m4x4_modelview_projection_room
+  };
 
-  float projection_matrices_[2][16];
+  static const short MATRIX_SIZE = 16;
+
+  jfloatArray GetMatrix(JNIEnv * env, MatrixId location);
 
 private:
   /**
@@ -173,6 +186,7 @@ private:
   int screen_height_;
 
   float eye_matrices_[2][16];
+  float projection_matrices_[2][16];
 
   GLuint depthRenderBuffer_;  // depth buffer
   GLuint framebuffer_;        // framebuffer object
@@ -198,15 +212,18 @@ private:
   std::vector<Texture> target_object_selected_textures_;
   int cur_target_object_;
 //        Texture test_tex_;
-    TexturedMesh test_mesh_;
-    Texture test_tex_;
+  TexturedMesh test_mesh_;
+  Texture test_tex_;
 
   GLuint gvPositionHandle;
   GLuint gvColorHandle;
   GLuint texture_color;            // distortion texture
 
   void DrawTest();
-    };
+
+  float *GetMatrixAs(MatrixId location);
+
+  };
 
 }  // namespace ndk_hello_cardboard
 
