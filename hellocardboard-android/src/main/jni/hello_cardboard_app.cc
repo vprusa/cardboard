@@ -66,17 +66,14 @@ constexpr const char* kObjFragmentShaders =
     precision mediump float;
     varying vec2 v_UV;
     uniform sampler2D u_Texture;
-//    varying vec4 v_Color;
+    uniform float Opacity; // range 0.0 to 1.0
 
     void main() {
       // The y coordinate of this sample's textures is reversed compared to
       // what OpenGL expects, so we invert the y coordinate.
-      gl_FragColor = texture2D(u_Texture, vec2(v_UV.x, 1.0 - v_UV.y));
+      gl_FragColor = texture2D(u_Texture, vec2(v_UV.x, (1.0 - v_UV.y)*1.0));
+      gl_FragColor.a *= Opacity;
 
-//      if(true) {
-//      if(u_Color.w != 0.0f) {
-//        gl_FragColor = v_Color;
-//      }
     })glsl";
 
 }  // anonymous namespace
@@ -96,6 +93,7 @@ HelloCardboardApp::HelloCardboardApp(JavaVM* vm, jobject obj, jobject asset_mgr_
       obj_position_param_(0),
       obj_uv_param_(0),
       obj_modelview_projection_param_(0),
+      gvOpacityHandle(1.0f),
       target_object_meshes_(kTargetMeshCount),
       target_object_not_selected_textures_(kTargetMeshCount),
       target_object_selected_textures_(kTargetMeshCount),
@@ -129,12 +127,12 @@ void HelloCardboardApp::OnSurfaceCreated(JNIEnv* env) {
 
   CHECKGLERROR("Obj program");
 
-//  gvPositionHandle = glGetAttribLocation(obj_program_, "vPosition");
-    gvPositionHandle = glGetAttribLocation(obj_program_, "a_Position");
-
+  gvPositionHandle = glGetAttribLocation(obj_program_, "a_Position");
+//  glVertexAttrib1f(gvOpacityHandle, 1.f);
   obj_position_param_ = glGetAttribLocation(obj_program_, "a_Position");
   obj_uv_param_ = glGetAttribLocation(obj_program_, "a_UV");
   obj_modelview_projection_param_ = glGetUniformLocation(obj_program_, "u_MVP");
+  gvOpacityHandle = glGetUniformLocation(obj_program_, "Opacity");
 
 //  gvColorHandle = glGetUniformLocation(obj_program_, "v_Color");
 //  glUniform4f(gvColorHandle, 0.0f, 1.0f, 0.5f, 0.5f);
@@ -165,8 +163,8 @@ void HelloCardboardApp::OnSurfaceCreated(JNIEnv* env) {
       env, java_asset_mgr_, "TriSphere_Pink_BakedDiffuse.png"));
 
 //  test_tex_.Initialize();
-  HELLOCARDBOARD_CHECK(target_object_selected_textures_[2].Initialize(
-          env, java_asset_mgr_, "TriSphere_Pink_BakedDiffuse.png"));
+//  HELLOCARDBOARD_CHECK(target_object_selected_textures_[2].Initialize(
+//          env, java_asset_mgr_, "TriSphere_Pink_BakedDiffuse.png"));
 
 //  HELLOCARDBOARD_CHECK(test_mesh_.Initialize(env, asset_mgr_, "redDot.png",
 //          obj_position_param_, obj_uv_param_));
@@ -174,7 +172,8 @@ void HelloCardboardApp::OnSurfaceCreated(JNIEnv* env) {
   HELLOCARDBOARD_CHECK(test_tex_.Initialize(env, java_asset_mgr_, "redDot.png"));
 
   // Target object first appears directly in front of user.
-  model_target_ = GetTranslationMatrix({0.0f, 1.5f, kMinTargetDistance});
+//  model_target_ = GetTranslationMatrix({0.0f, 1.5f, kMinTargetDistance});
+  model_target_ = GetTranslationMatrix({0.0f, 1.5f, -kMinTargetDistance});
 
   CHECKGLERROR("OnSurfaceCreated");
 }
@@ -399,6 +398,19 @@ void HelloCardboardApp::DrawWorld() {
 }
 
 void HelloCardboardApp::DrawTarget() {
+  // first lets check if it is necessary to draw target at all ..
+  if (IsPointingAtTarget()) {
+    long time = GetMonotonicTimeNano();
+    if (time - prevTime > 10000000) {
+      prevTime = time;
+      opacity -= 0.01f;
+      if (opacity <= 0.0f) {
+        HideTarget();
+        return;
+      }
+    }
+  }
+
   glUseProgram(obj_program_);
 
   std::array<float, 16> target_array = modelview_projection_target_.ToGlArray();
@@ -408,8 +420,10 @@ void HelloCardboardApp::DrawTarget() {
   if (IsPointingAtTarget()) {
     target_object_selected_textures_[cur_target_object_].Bind();
   } else {
+    opacity = 1.0f;
     target_object_not_selected_textures_[cur_target_object_].Bind();
   }
+  glUniform1f(gvOpacityHandle, opacity);
   target_object_meshes_[cur_target_object_].Draw();
 
   CHECKGLERROR("DrawTarget");
@@ -417,6 +431,7 @@ void HelloCardboardApp::DrawTarget() {
 
 void HelloCardboardApp::DrawRoom() {
   glUseProgram(obj_program_);
+  glUniform1f(gvOpacityHandle, 1.0f);
 
   std::array<float, 16> room_array = modelview_projection_room_.ToGlArray();
   glUniformMatrix4fv(obj_modelview_projection_param_, 1, GL_FALSE,
@@ -427,15 +442,6 @@ void HelloCardboardApp::DrawRoom() {
 
   CHECKGLERROR("DrawRoom");
 }
-
-
-//    const GLfloat gTriangleVertices[] = { 0.0f, 0.5f, -0.5f, -0.5f,
-//                                      0.5f, -0.5f };
-static const GLfloat g_vertex_buffer_data[] = {
-  -1.0f, -1.0f, 0.0f,
-  1.0f, -1.0f, 0.0f,
-  0.0f,  1.0f, -1.0f,
-};
 
 float * HelloCardboardApp::GetMatrixAs(MatrixId location){
   switch (location){
@@ -469,148 +475,30 @@ jfloatArray HelloCardboardApp::GetMatrix(JNIEnv * env, MatrixId location) {
   float * jfloatArrayData = GetMatrixAs(location);
   jfloatArray result = env->NewFloatArray(MATRIX_SIZE);
   env->SetFloatArrayRegion(result, 0, MATRIX_SIZE, jfloatArrayData);
-//  free(jfloatArrayData);
+  // TODO when I free memory the app crashes
+  //  free(jfloatArrayData);
   return result;
-//  return ;
-//    return 0;
 }
+
+static const GLfloat g_vertex_buffer_data[] = {
+    -1.0f, -1.0f, 0.0f,
+    1.0f, -1.0f, 0.0f,
+    0.0f,  1.0f, -1.0f,
+};
 
 void HelloCardboardApp::DrawTest() {
   glUseProgram(obj_program_);
 
-//    checkGlError("glUseProgram");
-
-//    glVertexAttribPointer(gvPositionHandle, 2, GL_FLOAT, GL_FALSE, 0, gTriangleVertices);
-//    checkGlError("glVertexAttribPointer");
-//    glEnableVertexAttribArray(gvPositionHandle);
-
-//    checkGlError("glEnableVertexAttribArray");
-//    glDrawArrays(GL_TRIANGLES, 0, 3);
-//    checkGlError("glDrawArrays");
-
-
-// This will identify our vertex buffer
-//  GLuint vertexbuffer;
-// Generate 1 buffer, put the resulting identifier in vertexbuffer
-//  glGenBuffers(1, &vertexbuffer);
-// The following commands will talk about our 'vertexbuffer' buffer
-//  glBindBuffer(GL_ARRAY_BUFFER, vertexbuffer);
-// Give our vertices to OpenGL.
-//  glBufferData(GL_ARRAY_BUFFER, sizeof(g_vertex_buffer_data), g_vertex_buffer_data, GL_STATIC_DRAW);
-
-//  glEnableVertexAttribArray(0);
-
-//  glClearColor(1.0f,0.0f,0.0f,0.0f);
-//  glClear(GL_COLOR_BUFFER_BIT);
-//  glEnableVertexAttribArray(gvPositionHandle);
-
-//  glBindTexture(GL_TEXTURE_2D, 0);
-//  HELLOCARDBOARD_CHECK(texture_id_ != 0);
-//  glActiveTexture(GL_TEXTURE0);
-//  glBindTexture(GL_TEXTURE_2D, 0);
-//  glColor
-//  glColor4f();
-//  glVertexAttrib4f(GL_SRC_COLOR, 1.0f, 0.0, 0.0, 1.0);
-//  glDisable(GL_TEXTURE_2D);
-//  glBindTexture();
-
-//  glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
-//  glClearColor(1,1,0,1);
-//  glBindBuffer(GL_ARRAY_BUFFER, vertexbuffer);
-//  glColor3f(1,1,0);
-/*
-  glVertexAttribPointer(
-//          GL_VERTEX_ATTRIB_GLKVertexAttribColor, // attribute
-          , // attribute
-          4,                 // number of elements per vertex, here (r,g,b,a
-          GL_FLOAT,          // the type of each element
-          GL_FALSE,          // take our values as-is
-          0,                 // no extra data between each position
-          triangle_colors
-  );
-  */
-
-// https://stackoverflow.com/questions/31601791/managing-color-data-in-opengl-es-2-0
-
-//  glBindTexture(GL_TEXTURE_2D, 0);
-//  glUniform4f(gvColorHandle, 0.0f, 1.0f, 0.5f, 0.5f);
-//  glUniform4f(gvColorHandle, 0.0f, 1.0f, 0.5f, 0.5f);
-
-
-/*
-  GLuint texture = 0;
-
-  GLsizei width = 2;
-  GLsizei height = 2;
-  GLsizei layerCount = 2;
-  GLsizei mipLevelCount = 1;
-
-// Read you texels here. In the current example, we have 2*2*2 = 8 texels, with each texel being 4 GLubytes.
-  GLubyte texels[32] =
-          {
-                  // Texels for first image.
-                  0,   0,   0,   255,
-                  255, 0,   0,   255,
-                  0,   255, 0,   255,
-                  0,   0,   255, 255,
-                  // Texels for second image.
-                  255, 255, 255, 255,
-                  255, 255,   0, 255,
-                  0,   255, 255, 255,
-                  255, 0,   255, 255,
-          };
-
-  glGenTextures(1,&texture);
-//  glBindTexture(GL_TEXTURE_2D_ARRAY,texture);
-  glBindTexture(GL_TEXTURE_2D,texture);
-// Allocate the storage.
-//  glTexStorage3D(GL_TEXTURE_2D, mipLevelCount, GL_RGBA, width, height, layerCount);
-// Upload pixel data.
-// The first 0 refers to the mipmap level (level 0, since there's only 1)
-// The following 2 zeroes refers to the x and y offsets in case you only want to specify a subrectangle.
-// The final 0 refers to the layer index offset (we start from index 0 and have 2 levels).
-// Altogether you can specify a 3D box subset of the overall texture, but only one mip level at a time.
-//  glTexSubImage3D(GL_TEXTURE_2D_ARRAY, 0, 0, 0, 0, width, height, layerCount, GL_RGBA, GL_UNSIGNED_BYTE, texels);
-
-// Always set reasonable texture parameters
-  glTexParameteri(GL_TEXTURE_2D_ARRAY,GL_TEXTURE_MIN_FILTER,GL_LINEAR);
-  glTexParameteri(GL_TEXTURE_2D_ARRAY,GL_TEXTURE_MAG_FILTER,GL_LINEAR);
-  glTexParameteri(GL_TEXTURE_2D_ARRAY,GL_TEXTURE_WRAP_S,GL_CLAMP_TO_EDGE);
-  glTexParameteri(GL_TEXTURE_2D_ARRAY,GL_TEXTURE_WRAP_T,GL_CLAMP_TO_EDGE);
-
-  glVertexAttribPointer(
-//          0,                  // attribute 0. No particular reason for 0, but must match the layout in the shader.
-          gvPositionHandle,
-          3,                  // size
-          GL_FLOAT,           // type
-          GL_FALSE,           // normalized?
-          0,                  // stride
-//          (void*)0            // array buffer offset
-          g_vertex_buffer_data
-  );
-  */
-// Draw the triangle !
-
-//  std::array<float, 16> room_array = modelview_projection_room_.ToGlArray();
-//  glUniformMatrix4fv(obj_modelview_projection_param_, 1, GL_FALSE,
-//                     room_array.data());
-
   test_tex_.Bind();
-//  test_mesh_.Draw();
   glVertexAttribPointer(
-//          0,                  // attribute 0. No particular reason for 0, but must match the layout in the shader.
           gvPositionHandle,
           3,                  // size
           GL_FLOAT,           // type
           GL_FALSE,           // normalized?
           0,                  // stride
-//          (void*)0            // array buffer offset
-          g_vertex_buffer_data
+          g_vertex_buffer_data // array buffer offset
   );
   glDrawArrays(GL_TRIANGLES, 0, 3); // Starting from vertex 0; 3 vertices total -> 1 triangle
-
-//  glDisableVertexAttribArray(0);
-
   CHECKGLERROR("DrawTest");
 }
 

@@ -205,23 +205,22 @@ private:
 
   TexturedMesh room_;
   Texture room_tex_;
-//  Texture test_tex_;
 
   std::vector<TexturedMesh> target_object_meshes_;
   std::vector<Texture> target_object_not_selected_textures_;
   std::vector<Texture> target_object_selected_textures_;
   int cur_target_object_;
-//        Texture test_tex_;
-  TexturedMesh test_mesh_;
   Texture test_tex_;
 
   GLuint gvPositionHandle;
-  GLuint gvColorHandle;
-  GLuint texture_color;            // distortion texture
+  GLuint gvOpacityHandle;
 
   void DrawTest();
 
   float *GetMatrixAs(MatrixId location);
+
+  long prevTime = 0;
+  float opacity = 1.0f;
 
   };
 
