@@ -128,14 +128,10 @@ void HelloCardboardApp::OnSurfaceCreated(JNIEnv* env) {
   CHECKGLERROR("Obj program");
 
   gvPositionHandle = glGetAttribLocation(obj_program_, "a_Position");
-//  glVertexAttrib1f(gvOpacityHandle, 1.f);
   obj_position_param_ = glGetAttribLocation(obj_program_, "a_Position");
   obj_uv_param_ = glGetAttribLocation(obj_program_, "a_UV");
   obj_modelview_projection_param_ = glGetUniformLocation(obj_program_, "u_MVP");
   gvOpacityHandle = glGetUniformLocation(obj_program_, "Opacity");
-
-//  gvColorHandle = glGetUniformLocation(obj_program_, "v_Color");
-//  glUniform4f(gvColorHandle, 0.0f, 1.0f, 0.5f, 0.5f);
 
   CHECKGLERROR("Obj program params");
 
@@ -172,8 +168,8 @@ void HelloCardboardApp::OnSurfaceCreated(JNIEnv* env) {
   HELLOCARDBOARD_CHECK(test_tex_.Initialize(env, java_asset_mgr_, "redDot.png"));
 
   // Target object first appears directly in front of user.
-//  model_target_ = GetTranslationMatrix({0.0f, 1.5f, kMinTargetDistance});
-  model_target_ = GetTranslationMatrix({0.0f, 1.5f, -kMinTargetDistance});
+  target_position = {0.0f, 1.5f, -kMinTargetDistance};
+  model_target_ = GetTranslationMatrix(target_position);
 
   CHECKGLERROR("OnSurfaceCreated");
 }
@@ -508,7 +504,7 @@ void HelloCardboardApp::HideTarget() {
   float angle = RandomUniformFloat(-M_PI, M_PI);
   float distance = RandomUniformFloat(kMinTargetDistance, kMaxTargetDistance);
   float height = RandomUniformFloat(kMinTargetHeight, kMaxTargetHeight);
-  std::array<float, 3> target_position = {std::cos(angle) * distance, height,
+  target_position = {std::cos(angle) * distance, height,
                                           std::sin(angle) * distance};
 
   model_target_ = GetTranslationMatrix(target_position);

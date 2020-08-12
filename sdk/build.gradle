@@ -67,6 +67,10 @@ protobuf {
     }
 }
 
+//repositories {
+//    mavenLocal()
+//}
+
 dependencies {
     implementation fileTree(dir: 'libs', include: ['*.jar'])
     implementation 'com.android.support:appcompat-v7:28.0.0'
@@ -80,4 +84,5 @@ dependencies {
     implementation "com.android.support:appcompat-v7:28.0.0"
     implementation "com.android.support:support-annotations:28.0.0"
     implementation "androidx.core:core-ktx:+"
+//    implementation 'cz.muni.fi.gag.web:gag-web-scala:1.0-SNAPSHOT'
 }

@@ -23,12 +23,15 @@ import android.content.res.AssetManager;
 import android.net.Uri;
 import android.opengl.GLES20;
 import android.opengl.GLSurfaceView;
+import android.opengl.Matrix;
 import android.os.Bundle;
+import android.os.SystemClock;
 import android.provider.Settings;
 
 import androidx.annotation.NonNull;
 import androidx.core.app.ActivityCompat;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.util.TimeUtils;
 
 import android.renderscript.Matrix4f;
 import android.util.Log;
@@ -43,9 +46,20 @@ import android.widget.Toast;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.FloatBuffer;
+import java.time.ZonedDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 import javax.microedition.khronos.egl.EGLConfig;
 import javax.microedition.khronos.opengles.GL10;
+
+import cz.muni.fi.gag.web.scala.shared.Hand;
+import cz.muni.fi.gag.web.scala.shared.common.Axis;
+import cz.muni.fi.gag.web.scala.shared.common.Axisable;
+import cz.muni.fi.gag.web.scala.shared.common.VisualizationContextAbsImpl;
+import cz.muni.fi.gag.web.scala.shared.visualization.HandVisualization;
+import scala.Enumeration;
+import scala.Option;
 
 /**
  * A Google Cardboard VR NDK sample application.
@@ -248,43 +262,108 @@ public class VrActivity extends AppCompatActivity implements PopupMenu.OnMenuIte
       public void draw(float[] mvpMatrix) {
         // Add program to OpenGL ES environment
         GLES20.glUseProgram(GlProgram);
-
         // get handle to vertex shader's vPosition member
         PositionHandle = GLES20.glGetAttribLocation(GlProgram, "vPosition");
-
         // Enable a handle to the triangle vertices
         GLES20.glEnableVertexAttribArray(PositionHandle);
-
         // Prepare the triangle coordinate data
         GLES20.glVertexAttribPointer(PositionHandle, COORDS_PER_VERTEX,
-            GLES20.GL_FLOAT, false,
-            VertexStride, VertexBuffer);
-
+            GLES20.GL_FLOAT, false, VertexStride, VertexBuffer);
         // get handle to fragment shader's vColor member
         ColorHandle = GLES20.glGetUniformLocation(GlProgram, "vColor");
-
         // Set color for drawing the triangle
         GLES20.glUniform4fv(ColorHandle, 1, color, 0);
-
         // get handle to shape's transformation matrix
         MVPMatrixHandle = GLES20.glGetUniformLocation(GlProgram, "uMVPMatrix");
 //        ArRenderer.checkGlError("glGetUniformLocation");
-
         // Apply the projection and view transformation
         GLES20.glUniformMatrix4fv(MVPMatrixHandle, 1, false, mvpMatrix, 0);
 //        ArRenderer.checkGlError("glUniformMatrix4fv");
-
         // Draw the triangle
         GLES20.glDrawArrays(GLES20.GL_LINES, 0, VertexCount);
-
         // Disable vertex array
         GLES20.glDisableVertexAttribArray(PositionHandle);
       }
     }
 
+    class MyQuaternion /*extends Quaternion*/ {
+      float data[] = new float[]{0.0f,0.0f,0.0f,0.0f};
+    }
+    class My3DObjectWithProps /*extends Quaternion*/ {
+      Line l;
+      public My3DObjectWithProps() {}
+      public My3DObjectWithProps(My3DObjectWithProps o) {
+        float[] cds = o.l.LineCoords;
+        this.l.SetVerts(cds[0],cds[1],cds[2],cds[3],cds[4],cds[5]);
+      }
+      public My3DObjectWithProps add(My3DObjectWithProps o){
+        return o;
+      }
+    }
+
+//    object Object3DWithProps {
+//      implicit def toObject3D(ext: Object3DWithProps): Object3D = ext.o3D
+//      implicit def toPropsJsTrait(ext: Object3DWithProps): PropsJsTrait = ext.props
+//    }
+
+//    @ScalaJSDefined
+//    class Object3DWithProps(_props: PropsJsTrait) extends scalajs.js.Object {
+//      var o3D: Object3D = new Object3D()
+//      var props: PropsJsTrait = _props
+//    }
+
+    class VisCtxImpl extends VisualizationContextAbsImpl<My3DObjectWithProps, MyQuaternion> {
+      List<Line> al = new ArrayList<Line>();
+//      @Override
+//      public void _rotateGeoms(float f, Option<My3DObjectWithProps> o, Enumeration.Value v) {}
+      @Override
+      public Option<My3DObjectWithProps> _add(My3DObjectWithProps o, float v, float v1, float v2) {
+//        o.l.SetColor(1.0f,1.0f,1.0f,1.0f);
+//        o.l.SetVerts(v,v1,v2,v,v1,v2 + 0.5f);
+//        o.l.SetVerts(v,v1,v2,v3,v4,v5);
+        My3DObjectWithProps o2 = new My3DObjectWithProps(o);
+        o.add(o2);
+        return Option.apply(o2);
+//        return null;
+      }
+      @Override
+      public My3DObjectWithProps _point(float v, float v1, float v2, Option<My3DObjectWithProps> option) {
+        if(option.isEmpty()) {
+          My3DObjectWithProps o = option.get();
+          o.l.SetColor(1.0f,1.0f,1.0f,1.0f);
+          o.l.SetVerts(v,v1,v2,v,v1,v2 + 0.5f);
+//          o.l.SetVerts(v,v1,v2,v3,v4,v5);
+          return o;
+        }
+        return null;
+      }
+      @Override
+      public My3DObjectWithProps _line(float v, float v1, float v2, float v3, float v4, float v5, Option<My3DObjectWithProps> option) {
+        if(option.isEmpty()) {
+          My3DObjectWithProps o = option.get();
+          o.l.SetColor(1.0f,1.0f,1.0f,1.0f);
+          o.l.SetVerts(v,v1,v2,v3,v4,v5);
+          return o;
+        }
+        return null;
+      }
+      @Override
+      public void _rotateGeoms(MyQuaternion myQuaternion, Option<My3DObjectWithProps> option) {
+        if(option.isEmpty()){
+//          option.get().rotate(myQuaternion);
+        }
+      }
+
+      @Override
+      public void _rotateGeoms(float v, Option<My3DObjectWithProps> option, Axisable axisable) {
+        if(Axis.X() == axisable) {}
+      }
+
+    }
+
     private Line l;
     private Line l2;
-    private Line l3;
+    private HandVisualization hv;
 
     public void onSurfaceCreated(GL10 unused, EGLConfig config) {
       nativeOnSurfaceCreated(nativeApp);
@@ -294,20 +373,20 @@ public class VrActivity extends AppCompatActivity implements PopupMenu.OnMenuIte
       l.SetColor(1.0f, .0f, .3f, 1.0f);
 
       l2 = new Line();
-      l2.SetVerts(0.0f, 0.0f, 0.0f, 1.0f, 1.0f, -3.0f);
-      l2.SetColor(1.0f, .2f, .8f, .3f);
+      l2.SetVerts(-8f, -8f, 2.0f, 4.0f, -8.0f, 2.0f);
+      l2.SetColor(1.0f, .0f, .3f, 1.0f);
 
-      l3 = new Line();
-      l3.SetVerts(0.0f, 0.0f, 0.0f, -2.0f, 1.0f, 3.0f);
-      l3.SetColor(1.0f, .2f, .8f, .8f);
+      // Value hi, VisualizationContextT<GeomType, QuaternionType> ap
+      Enumeration.Value h = Hand.RIGHT();
+      VisCtxImpl vci = new VisCtxImpl();
+      hv = new HandVisualization(h, vci);
     }
+    private float[] rotationMatrix = new float[16];
 
     public void onDrawFrame(GL10 unused) {
       nativeOnDrawFrame(nativeApp);
       GLES20.glClear(GLES20.GL_DEPTH_BUFFER_BIT);
-//      GLES20.glClear(GLES20.GL_DEPTH_BUFFER_BIT|GLES20.GL_STENCIL_BUFFER_BIT);
-//      GLES20.glClear(GLES20.GL_DEPTH_BUFFER_BIT|GLES20.GL_COLOR_BUFFER_BIT);
-//      GLES20.glClear(0);
+
       // Draw eyes views
       int screen_width_ = glView.getWidth();
       int screen_height_ = glView.getHeight();
@@ -334,31 +413,39 @@ public class VrActivity extends AppCompatActivity implements PopupMenu.OnMenuIte
         Matrix4f projection_matrix = new Matrix4f(projection_matrices_);
 //        Matrix4x4 modelview_target = eye_view * model_target_;
         Matrix4f modelview_target = new Matrix4f(eye_view.getArray());
-//        modelview_target.multiply();
+
+
+
         Matrix4f modelview_projection_target_ = new Matrix4f(projection_matrix.getArray());
         modelview_projection_target_.multiply(modelview_target);
-//        eye_view * model_target_;
-
-        // Draw room and target
+//        modelview_projection_target_.rotate(.2f, 1.0f, 1.0f, 0.0f);
 
         // Draw shape
         l.draw(modelview_projection_target_.getArray());
-        l2.draw(modelview_projection_target_.getArray());
-        l3.draw(modelview_projection_target_.getArray());
+
+        // https://developer.android.com/training/graphics/opengl/motion
+        long time = SystemClock.uptimeMillis() % 4000L;
+        float angle = 0.090f * ((int) time);
+        Matrix.setRotateM(rotationMatrix, 0, angle, -1.0f, 0, 0f);
+        float[] scratch = new float[16];
+
+        // Combine the rotation matrix with the projection and camera view
+        // Note that the vPMatrix factor *must be first* in order
+        // for the matrix multiplication product to be correct.
+        Matrix.multiplyMM(scratch, 0, modelview_projection_target_.getArray(), 0, rotationMatrix, 0);
+
+//        l2.draw(modelview_projection_target_.getArray());
+        l2.draw(scratch);
+//        My3DObjectWithProps o = new My3DObjectWithProps();
+//        hv.draw();
+//        hv.drawWholeHand(o);
       }
 
 //      CHECKGLERROR("onDrawFrame");
     }
 
-//    private final float[] projectionMatrix = new float[16];
-
     public void onSurfaceChanged(GL10 unused, int width, int height) {
       nativeSetScreenParams(nativeApp, width, height);
-      GLES20.glViewport(0, 0, width, height);
-//      float ratio = (float) width / height;
-      // this projection matrix is applied to object coordinates
-      // in the onDrawFrame() method
-//      Matrix.frustumM(projectionMatrix, 0, -ratio, ratio, -1, 1, 3, 7);
     }
 
   }

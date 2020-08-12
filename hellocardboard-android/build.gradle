@@ -1,3 +1,6 @@
+ext {
+    gagWebScalaSharedVersion = '1.0-SNAPSHOT'
+}
 apply plugin: 'com.android.application'
 
 android {
@@ -8,6 +11,9 @@ android {
         targetSdkVersion 28
         versionCode 1
         versionName "1.1"
+        multiDexEnabled true
+        // TODO deal with gag-web-scala-shared methods count (disable multiDexEnabled)
+        // - Cannot fit requested classes in a single dex file (# methods: 109909 > 65536)
         testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
         ndk {
             abiFilters 'armeabi-v7a', 'arm64-v8a'
@@ -18,6 +24,9 @@ android {
                 arguments "-DANDROID_STL=c++_shared"
             }
         }
+    }
+    packagingOptions {
+        exclude 'META-INF/INDEX.LIST'
     }
     buildTypes {
         release {
@@ -36,6 +45,10 @@ android {
     }
 }
 
+repositories {
+    mavenLocal()
+}
+
 dependencies {
     implementation fileTree(dir: 'libs', include: ['*.jar'])
     implementation 'com.android.support:appcompat-v7:28.0.0'
@@ -44,7 +57,10 @@ dependencies {
     implementation 'com.google.android.gms:play-services-vision:20.1.0'
     implementation 'com.android.support:design:28.0.0'
     implementation project(":sdk")
+    //    implementation 'cz.muni.fi.gag.web:gag-web-scala:1.0-SNAPSHOT'
+//    implementation 'cz.muni.fi.gag.web:gag-web-scala:1.0-SNAPSHOT'
 //    compile 'com.android.support:support-annotations:22.2.0'
+    implementation 'cz.muni.fi.gag.web:gag-web-scala-shared_2.11:1.0-SNAPSHOT'
 }
 
 // The dependencies for NDK builds live inside the .aar files so they need to

@@ -199,6 +199,7 @@ private:
 
   Matrix4x4 head_view_;
   Matrix4x4 model_target_;
+  std::array<float, 3> target_position;
 
   Matrix4x4 modelview_projection_target_;
   Matrix4x4 modelview_projection_room_;
