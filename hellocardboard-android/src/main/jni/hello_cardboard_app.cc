@@ -388,7 +388,7 @@ Matrix4x4 HelloCardboardApp::GetPose() {
 }
 
 void HelloCardboardApp::DrawWorld() {
-  DrawRoom();
+//  DrawRoom();
   DrawTest();
   DrawTarget();
 }
