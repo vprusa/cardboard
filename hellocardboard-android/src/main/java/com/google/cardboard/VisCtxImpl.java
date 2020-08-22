@@ -15,7 +15,7 @@ import scala.Option;
 /**
  * Copyright (c) 2020 <a href="mailto:prusa.vojtech@gmail.com">Vojtech Prusa</a>
  */
-public class VisCtxImpl extends VisualizationContextAbsImpl<VisCtxImpl.My3DObjectWithProps, VisCtxImpl.MyQuaternion> {
+public class VisCtxImpl extends VisualizationContextAbsImpl<My3DObjectWithProps, EQuaternion> {
 
 //    object Object3DWithProps {
 //      implicit def toObject3D(ext: Object3DWithProps): Object3D = ext.o3D
@@ -28,21 +28,6 @@ public class VisCtxImpl extends VisualizationContextAbsImpl<VisCtxImpl.My3DObjec
 //      var props: PropsJsTrait = _props
 //    }
 
-  class MyQuaternion /*extends Quaternion*/ {
-    float data[] = new float[]{0.0f,0.0f,0.0f,0.0f};
-  }
-  class My3DObjectWithProps /*extends Quaternion*/ {
-    Line l;
-    public My3DObjectWithProps() {}
-    public My3DObjectWithProps(My3DObjectWithProps o) {
-      float[] cds = o.l.LineCoords;
-      this.l.setVerts(cds[0],cds[1],cds[2],cds[3],cds[4],cds[5]);
-    }
-    public My3DObjectWithProps add(My3DObjectWithProps o){
-      return o;
-    }
-  }
-
   private final VrActivity vrActivity;
   private final VrActivity.YAGLRenderer yaglRenderer;
   List<Line> al = new ArrayList<Line>();
@@ -53,40 +38,60 @@ public class VisCtxImpl extends VisualizationContextAbsImpl<VisCtxImpl.My3DObjec
   }
 
   @Override
-  public Option<VisCtxImpl.My3DObjectWithProps> _add(VisCtxImpl.My3DObjectWithProps o, float v, float v1, float v2) {
-    VisCtxImpl.My3DObjectWithProps o2 = new VisCtxImpl.My3DObjectWithProps(o);
+  public Option<My3DObjectWithProps> _add(My3DObjectWithProps o, float v, float v1, float v2) {
+    My3DObjectWithProps o2 = new My3DObjectWithProps(o);
+    o2.setVerts(v,v1,v2,v,v1,v2 + 0.1f);
+//    o2.mvpMatrix = o.mvpMatrix.clone();
     o.add(o2);
+//    o.add(o2);
     return Option.apply(o2);
 //        return null;
   }
   @Override
-  public VisCtxImpl.My3DObjectWithProps _point(float v, float v1, float v2, Option<VisCtxImpl.My3DObjectWithProps> option) {
-    if(option.isEmpty()) {
-      VisCtxImpl.My3DObjectWithProps o = option.get();
-      o.l.setColor(1.0f,1.0f,1.0f,1.0f);
-      o.l.setVerts(v,v1,v2,v,v1,v2 + 0.5f);
-      return o;
+  public My3DObjectWithProps _point(float v, float v1, float v2, Option<My3DObjectWithProps> option) {
+    My3DObjectWithProps no = null;
+    if(!option.isEmpty()) {
+      My3DObjectWithProps o = option.get();
+      //      return o;
+      no = new My3DObjectWithProps(o);
+      no.setColor(.0f,1.0f,.0f,1.0f);
+//      no.setVerts(v,v1,v2,v,v1,v2 + 0.5f);
+      no.setVerts(v,v1,v2,v,v1,v2 + 0.1f);
+//      no.mvpMatrix = o.mvpMatrix.clone();
+      o.add(no);
     }
-    return null;
+    return no;
   }
   @Override
-  public VisCtxImpl.My3DObjectWithProps _line(float v, float v1, float v2, float v3, float v4, float v5, Option<VisCtxImpl.My3DObjectWithProps> option) {
-    if(option.isEmpty()) {
-      VisCtxImpl.My3DObjectWithProps o = option.get();
-      o.l.setColor(1.0f,1.0f,1.0f,1.0f);
-      o.l.setVerts(v,v1,v2,v3,v4,v5);
-      return o;
+  public My3DObjectWithProps _line(float v, float v1, float v2, float v3, float v4, float v5, Option<My3DObjectWithProps> option) {
+    My3DObjectWithProps no = null;
+    if(!option.isEmpty()) {
+      My3DObjectWithProps o = option.get();
+      //      return o;
+      no = new My3DObjectWithProps(o);
+      no.setColor(.0f,1.0f,.0f,1.0f);
+//      no.setVerts(v,v1,v2,v3,v4,v5);
+      no.setVerts(v,v1,v2,v3,v4,v5);
+//      no.mvpMatrix = o.mvpMatrix.clone();
+      o.add(no);
     }
-    return null;
+    return no;
+//    return null;
   }
   @Override
-  public void _rotateGeoms(VisCtxImpl.MyQuaternion myQuaternion, Option<VisCtxImpl.My3DObjectWithProps> option) {
+  public void _rotateGeoms(EQuaternion myQuaternion, Option<My3DObjectWithProps> option) {
     if(!option.isEmpty()){
 //          option.get().rotate(myQuaternion);
+      My3DObjectWithProps o = option.get();
+      o.rotate(myQuaternion);
     }
   }
   @Override
-  public void _rotateGeoms(float v, Option<VisCtxImpl.My3DObjectWithProps> option, Axisable axisable) {
-    if(Axis.X() == axisable) {}
+  public void _rotateGeoms(float v, Option<My3DObjectWithProps> option, Axis.AxisableVal axis) {
+    if(option.nonEmpty()) {
+      My3DObjectWithProps o = option.get();
+//      o.rotate(v, axisable);
+      o.rotate(v, axis, true, false);
+    }
   }
 }

@@ -23,7 +23,9 @@ import android.content.res.AssetManager;
 import android.net.Uri;
 import android.opengl.GLES20;
 import android.opengl.GLSurfaceView;
+import android.opengl.Matrix;
 import android.os.Bundle;
+import android.os.SystemClock;
 import android.provider.Settings;
 
 import androidx.annotation.NonNull;
@@ -45,6 +47,7 @@ import javax.microedition.khronos.opengles.GL10;
 
 import cz.muni.fi.gag.web.scala.shared.Hand;
 import cz.muni.fi.gag.web.scala.shared.common.Axis;
+import cz.muni.fi.gag.web.scala.shared.visualization.FingerVisualization;
 import cz.muni.fi.gag.web.scala.shared.visualization.HandVisualization;
 import scala.Enumeration;
 
@@ -164,7 +167,10 @@ public class VrActivity extends AppCompatActivity implements PopupMenu.OnMenuIte
     private Line l;
     private Line l2;
     private Line l3;
+    private Line l4;
     private HandVisualization hv;
+//    private FingerVisualization fv;
+    private My3DObjectWithProps o;
 
     public void onSurfaceCreated(GL10 unused, EGLConfig config) {
       nativeOnSurfaceCreated(nativeApp);
@@ -187,10 +193,25 @@ public class VrActivity extends AppCompatActivity implements PopupMenu.OnMenuIte
       l3.setColor(1.0f, .0f, 1.f, 1.0f);
       l2.add(l3);
 
+      l4 = new Line("4");
+      l4.setVerts(0f, 0f, .0f, .0f, .0f, -2.0f);
+//      l3.setVerts(0f, 0f, 0.0f, 2.0f, .0f, -2.0f);
+      l4.setColor(1.0f, .5f, 1.f, 1.0f);
+      l3.add(l4);
+
       // Value hi, VisualizationContextT<GeomType, QuaternionType> ap
       Enumeration.Value h = Hand.RIGHT();
       VisCtxImpl vci = new VisCtxImpl(VrActivity.this, this);
+      o = new My3DObjectWithProps("t1");
       hv = new HandVisualization(h, vci);
+
+//      fv = new FingerVisualization(h, hv, vci, 50, 50, 50, 50);
+      o.setVerts(0,-10.0f, 0f,  0f, -10.0f, -0f);
+      o.setColor(.0f, .9f, .0f, 1.0f);
+      hv.drawWholeHand(o);
+//      hv.ringVis().rotateY(360.5f);
+
+//      hv.drawWholeHand(o);
     }
 
     public void drawEyesView(){
@@ -225,26 +246,55 @@ public class VrActivity extends AppCompatActivity implements PopupMenu.OnMenuIte
 
         Matrix4f modelview_projection_target_ = new Matrix4f(projection_matrix.getArray());
         modelview_projection_target_.multiply(modelview_target);
-//        modelview_projection_target_.rotate(.2f, 1.0f, 1.0f, 0.0f);
 
-        // Draw shape
+        // Set mvpMatrices to Line
+        l4.setMvpMatrix(modelview_projection_target_.getArray().clone());
         l3.setMvpMatrix(modelview_projection_target_.getArray().clone());
         l2.setMvpMatrix(modelview_projection_target_.getArray().clone());
         l.setMvpMatrix(modelview_projection_target_.getArray().clone());
+        o.setMvpMatrix(modelview_projection_target_.getArray().clone());
 
-//        l2.rotate(0.9f, Axis.Y());
-        l.rotate(0.9f, Axis.Y());
-        l2.rotate(0.9f, Axis.Y());
-        l3.rotate(0.9f, Axis.Y());
-//        l2.rotate(0.9f, Axis.Y());
+        float angle = 0.09f * ((int) SystemClock.uptimeMillis() % 4000L);
+        // Rotate
+        l.rotate(angle, Axis.Y());
+        l2.rotate(angle, Axis.Y());
+        l3.rotate(angle, Axis.Y());
+        l4.rotate(angle, Axis.Y());
+
+        // Draw shape
         l.draw();
-//        My3DObjectWithProps o = new My3DObjectWithProps();
-//        hv.draw();
-//        hv.drawWholeHand(o);
+
+//        Matrix.setIdentityM(o.rotationMatrix, 0);
+//        Matrix.setRotateM(o.rotationMatrix,0,angle,1.0f,0.0f,0.0f);
+        Matrix.scaleM(o.mvpMatrix,0,0.002f,0.002f,0.002f);
+        o.propagateMatrixes();
+
+        long time = SystemClock.uptimeMillis() % 3600;
+//        float angle2 = 1.f / ( ((int) time));
+        float angle2 = 4000.f/(((int) time));
+
+        EQuaternion eq = new EQuaternion(1.0f, 0.0f, 0.0f, -angle2);
+//        EQuaternion eq2 = new EQuaternion(1.0f, 0.0f, -angle2,0.0f);
+//        EQuaternion eq = new EQuaternion(1.0f,  -angle2, 0.0f,-angle2);
+//        EQuaternion eq = new EQuaternion(1.0f,  -angle2, 0.0f,-angle2);
+//        o.rotate(angle, Axis.X());
+//        o.rotate(angle2, Axis.X());
+        o.rotate(eq);
+//        ((My3DObjectWithProps)hv.ringVis().pivot().get()).rotate(eq2);
+//        ((My3DObjectWithProps)hv.ringVis().pivot().get()).rotate(eq2);
+
+//        o.childern.get(0).childern.get(10).rotate(eq2);
+//        hv.littleVis().rotate(eq2);
+//        hv.littleVis().rotateX(-angle2*360);
+//        hv.littleVis().rotateZ(eq2.yaw);
+        hv.littleVis().rotateZ(30);
+//        hv.littleVis().rotateX(-angle2);
+        o.draw();
       }
 
 //      CHECKGLERROR("onDrawFrame");
     }
+
 
     public void onDrawFrame(GL10 unused) {
       nativeOnDrawFrame(nativeApp);

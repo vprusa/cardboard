@@ -2,7 +2,6 @@ package com.google.cardboard;
 
 import android.opengl.GLES20;
 import android.opengl.Matrix;
-import android.os.SystemClock;
 
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
@@ -19,7 +18,7 @@ import cz.muni.fi.gag.web.scala.shared.common.Axis;
 public class Line {
   private FloatBuffer VertexBuffer;
 
-  private final String VertexShaderCode =
+  private static final String VertexShaderCode =
       // This matrix member variable provides a hook to manipulate
       // the coordinates of the objects that use this vertex shader
       "uniform mat4 uMVPMatrix;" +
@@ -29,7 +28,7 @@ public class Line {
           "  gl_Position = uMVPMatrix * vPosition;" +
           "}";
 
-  private final String FragmentShaderCode =
+  private static final String FragmentShaderCode =
       "precision mediump float;" +
           "uniform vec4 vColor;" +
           "void main() {" +
@@ -147,23 +146,31 @@ public class Line {
 
   // https://developer.android.com/training/graphics/opengl/motion
   public void rotate(float angle, Axis.AxisableVal axis) {
-    rotate(angle, axis, true);
+    rotate(angle, axis, true, true);
   }
 
-  public void rotate(float angle, Axis.AxisableVal axis, boolean relative) {
+  public void rotate(EQuaternion q) {
+    rotate(q.yaw, Axis.X(), true, true);
+    rotate(q.pitch, Axis.Y(), true, false);
+    rotate(q.roll, Axis.Z(), true, false);
+//    rotate(q.yaw, Axis.X(), true, true);
+//    rotate(q.pitch, Axis.Y(), true, false);
+//    rotate(q.roll, Axis.Z(), true, false);
+  }
 
-    long time = SystemClock.uptimeMillis() % 4000L;
+  public void rotate(float angle, Axis.AxisableVal axis, boolean relative, boolean clean) {
+//    long time = SystemClock.uptimeMillis() % 4000L;
 //        float angle = 0.090f * ((int) time);
 //        float angle = 0.90f;
     float angDir = (angle >= 0.0f ? 1.0f : -1.0f);
-    angle = 0.090f * ((int) time) * angDir;
+//    angle = 0.090f * ((int) time) * angDir;
     float angAbs = Math.abs(angle);
 
     if (this.parent != null) {
 //      rotationMatrix = parent.rotationMatrix.clone();
       rotationMatrix = parent.rotationMatrix.clone();
 //      Matrix.setIdentityM(rotationMatrix, 0);
-    } else {
+    } else if(clean) {
       Matrix.setIdentityM(rotationMatrix, 0);
     }
     if(relative) {
@@ -181,7 +188,7 @@ public class Line {
     }
 
     for (Line l : childern) {
-      l.rotate(angle, axis, false);
+      l.rotate(angle, axis, false, true);
     }
   }
 
@@ -195,4 +202,15 @@ public class Line {
     childern.add(dst);
     dst.parent = this;
   }
+
+  public void propagateMatrixes() {
+    if(childern != null) {
+      for(Line o : childern){
+        o.mvpMatrix = this.mvpMatrix.clone();
+        o.rotationMatrix = this.rotationMatrix.clone();
+        o.propagateMatrixes();
+      }
+    }
+  }
+
 }
