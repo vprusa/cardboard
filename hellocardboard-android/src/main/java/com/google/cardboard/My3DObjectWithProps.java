@@ -4,19 +4,47 @@
 
 package com.google.cardboard;
 
-public class My3DObjectWithProps extends Line {
+import cz.muni.fi.gag.web.scala.shared.common.Axis;
+import cz.muni.fi.gag.web.scala.shared.common.Quaternion;
 
-  public My3DObjectWithProps(String name) {
-    super(name);
-  }
+/**
+ * TODO too many methods
+ *  split into multiple?
+ *   parent, parent:line, parent:dot
+ *
+ * */
+public interface My3DObjectWithProps {
+  
+  void setVerts(float v0, float v1, float v2, float v3, float v4, float v5);
 
-  public My3DObjectWithProps(My3DObjectWithProps o) {
-    this("unknown");
-    if(o!=null){
-      name = o.name;
-      color = o.color;
-    }
+  void setColor(float red, float green, float blue, float alpha);
 
-  }
+  float[] getColor();
+
+  String getName();
+
+  float[] getMvpMatrix();
+
+  void setMvpMatrix(float[] mvpMatrix);
+
+  void draw();
+
+  void propagateMatrixes();
+
+  void rotate(final float angle, final Axis.AxisableVal axis);
+
+  void rotate(final Quaternion q);
+
+  void add(My3DObjectWithProps dst);
+
+  void rotate(final float angle, final Axis.AxisableVal axis, final boolean relative, final boolean resetRotation);
+
+  void setRotationMatrix(float[] clone);
+
+  float[] getLineCoords();
+
+  void setParent(My3DObjectWithProps parent);
+
+  float[] getRotationMatrix();
 
 }

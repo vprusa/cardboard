@@ -47,9 +47,8 @@ import javax.microedition.khronos.opengles.GL10;
 
 import cz.muni.fi.gag.web.scala.shared.Hand;
 import cz.muni.fi.gag.web.scala.shared.common.Axis;
-import cz.muni.fi.gag.web.scala.shared.visualization.FingerVisualization;
+import cz.muni.fi.gag.web.scala.shared.common.Quaternion;
 import cz.muni.fi.gag.web.scala.shared.visualization.HandVisualization;
-import scala.Enumeration;
 
 /**
  * A Google Cardboard VR NDK sample application.
@@ -57,6 +56,7 @@ import scala.Enumeration;
  * <p>This is the main Activity for the sample application. It initializes a GLSurfaceView to allow
  * rendering.
  *
+ * @changed <a href="mailto:prusa.vojtech@gmail.com">Vojtech Prusa</a>
  */
 public class VrActivity extends AppCompatActivity implements PopupMenu.OnMenuItemClickListener {
   static {
@@ -92,8 +92,6 @@ public class VrActivity extends AppCompatActivity implements PopupMenu.OnMenuIte
     // Set the Renderer for drawing on the GLSurfaceView
     glView.setRenderer(renderer);
 
-//    Renderer renderer = new Renderer();
-//    glView.setRenderer(renderer);
     glView.setRenderMode(GLSurfaceView.RENDERMODE_CONTINUOUSLY);
     glView.setOnTouchListener(
         (v, event) -> {
@@ -169,15 +167,15 @@ public class VrActivity extends AppCompatActivity implements PopupMenu.OnMenuIte
     private Line l3;
     private Line l4;
     private HandVisualization hv;
-//    private FingerVisualization fv;
     private My3DObjectWithProps o;
+    private Quaternion eq;
 
     public void onSurfaceCreated(GL10 unused, EGLConfig config) {
       nativeOnSurfaceCreated(nativeApp);
 
       l = new Line("1");
 //      l.SetVerts(0, 0f, 2.0f, 0f, -8f, 2.0f);
-      l.setVerts(0,-10.0f, 0f,  0f, -10.0f, -2f);
+      l.setVerts(-5f, -10.0f, 0f, -5f, -10.0f, -2f);
       l.setColor(1.0f, .0f, .0f, 1.0f);
 
       l2 = new Line("2");
@@ -199,22 +197,17 @@ public class VrActivity extends AppCompatActivity implements PopupMenu.OnMenuIte
       l4.setColor(1.0f, .5f, 1.f, 1.0f);
       l3.add(l4);
 
-      // Value hi, VisualizationContextT<GeomType, QuaternionType> ap
-      Enumeration.Value h = Hand.RIGHT();
-      VisCtxImpl vci = new VisCtxImpl(VrActivity.this, this);
-      o = new My3DObjectWithProps("t1");
-      hv = new HandVisualization(h, vci);
+      o = new Line("t1");
+      hv = new HandVisualization(Hand.RIGHT(), new VisCtxImpl());
 
-//      fv = new FingerVisualization(h, hv, vci, 50, 50, 50, 50);
-      o.setVerts(0,-10.0f, 0f,  0f, -10.0f, -0f);
+      // TODO scale kind of messes up verts location ...
+//      o.setVerts(0, -10.0f, 0f, 0f, -10.0f, -0f);
+      o.setVerts(300f, -10.0f, 0f, 300f, -10.0f, 0f);
       o.setColor(.0f, .9f, .0f, 1.0f);
       hv.drawWholeHand(o);
-//      hv.ringVis().rotateY(360.5f);
-
-//      hv.drawWholeHand(o);
     }
 
-    public void drawEyesView(){
+    public void drawEyesView() {
       GLES20.glClear(GLES20.GL_DEPTH_BUFFER_BIT);
 
       // Draw eyes views
@@ -247,52 +240,48 @@ public class VrActivity extends AppCompatActivity implements PopupMenu.OnMenuIte
         Matrix4f modelview_projection_target_ = new Matrix4f(projection_matrix.getArray());
         modelview_projection_target_.multiply(modelview_target);
 
-        // Set mvpMatrices to Line
-        l4.setMvpMatrix(modelview_projection_target_.getArray().clone());
-        l3.setMvpMatrix(modelview_projection_target_.getArray().clone());
-        l2.setMvpMatrix(modelview_projection_target_.getArray().clone());
-        l.setMvpMatrix(modelview_projection_target_.getArray().clone());
-        o.setMvpMatrix(modelview_projection_target_.getArray().clone());
+        drawEye(modelview_projection_target_);
+      }
+      // TODO add glcheckerror
+//      CHECKGLERROR("onDrawFrame");
+    }
+
+    public void drawEye(Matrix4f modelview_projection_target_) {
+
+      // Set mvpMatrices to Line
+      l4.setMvpMatrix(modelview_projection_target_.getArray().clone());
+      l3.setMvpMatrix(modelview_projection_target_.getArray().clone());
+      l2.setMvpMatrix(modelview_projection_target_.getArray().clone());
+      l.setMvpMatrix(modelview_projection_target_.getArray().clone());
+      o.setMvpMatrix(modelview_projection_target_.getArray().clone());
 
         float angle = 0.09f * ((int) SystemClock.uptimeMillis() % 4000L);
-        // Rotate
-        l.rotate(angle, Axis.Y());
-        l2.rotate(angle, Axis.Y());
-        l3.rotate(angle, Axis.Y());
-        l4.rotate(angle, Axis.Y());
+//      float angle = 30;
 
-        // Draw shape
-        l.draw();
+      // Rotate
+      l.rotate(angle, Axis.Y());
+      l2.rotate(angle, Axis.Y());
+      l3.rotate(angle, Axis.Y());
+      l4.rotate(angle, Axis.Y());
 
-//        Matrix.setIdentityM(o.rotationMatrix, 0);
-//        Matrix.setRotateM(o.rotationMatrix,0,angle,1.0f,0.0f,0.0f);
-        Matrix.scaleM(o.mvpMatrix,0,0.002f,0.002f,0.002f);
-        o.propagateMatrixes();
+      // Draw shape
+      l.draw();
 
-        long time = SystemClock.uptimeMillis() % 3600;
-//        float angle2 = 1.f / ( ((int) time));
-        float angle2 = 4000.f/(((int) time));
+      float scale = 0.002f;
+      Matrix.scaleM(o.getMvpMatrix(), 0, scale, scale, scale);
+      o.propagateMatrixes();
 
-        EQuaternion eq = new EQuaternion(1.0f, 0.0f, 0.0f, -angle2);
-//        EQuaternion eq2 = new EQuaternion(1.0f, 0.0f, -angle2,0.0f);
-//        EQuaternion eq = new EQuaternion(1.0f,  -angle2, 0.0f,-angle2);
-//        EQuaternion eq = new EQuaternion(1.0f,  -angle2, 0.0f,-angle2);
-//        o.rotate(angle, Axis.X());
-//        o.rotate(angle2, Axis.X());
-        o.rotate(eq);
-//        ((My3DObjectWithProps)hv.ringVis().pivot().get()).rotate(eq2);
-//        ((My3DObjectWithProps)hv.ringVis().pivot().get()).rotate(eq2);
+      // TODO is there a bug when using not using 4000.f,
+      //  i may not understand smth crucial here and now im too lazy to deal with that..
+      long time = SystemClock.uptimeMillis() % 3600;
+      float angle2 = 4000.f / (((int) time));
+      eq = new Quaternion(1.0f, 0.0f, 0.0f, angle2);
+      o.rotate(eq);
+      hv.littleVis().rotateZ(30);
+      // right hand
+      hv.rotateY(180);
 
-//        o.childern.get(0).childern.get(10).rotate(eq2);
-//        hv.littleVis().rotate(eq2);
-//        hv.littleVis().rotateX(-angle2*360);
-//        hv.littleVis().rotateZ(eq2.yaw);
-        hv.littleVis().rotateZ(30);
-//        hv.littleVis().rotateX(-angle2);
-        o.draw();
-      }
-
-//      CHECKGLERROR("onDrawFrame");
+      o.draw();
     }
 
 
