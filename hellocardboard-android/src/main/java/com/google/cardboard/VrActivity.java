@@ -42,6 +42,12 @@ import android.view.WindowManager;
 import android.widget.PopupMenu;
 import android.widget.Toast;
 
+import com.ficat.easyble.BleDevice;
+import com.ficat.easyble.BleManager;
+import com.ficat.easyble.gatt.callback.BleCallback;
+import com.ficat.easyble.gatt.callback.BleConnectCallback;
+import com.ficat.easyble.gatt.callback.BleNotifyCallback;
+
 import javax.microedition.khronos.egl.EGLConfig;
 import javax.microedition.khronos.opengles.GL10;
 
@@ -74,10 +80,192 @@ public class VrActivity extends AppCompatActivity implements PopupMenu.OnMenuIte
 
   private GLSurfaceView glView;
 
+  private BleManager manager;
+
+  // TODO deal with this on ESP32's side
+  //  Tts like the knowledge after the first semester on FIT and still I am too lazy
+  //  to think it on my own when there is a solution on the internet
+  // https://www.rgagnon.com/javadetails/java-0026.html
+  public static class UnsignedByte {
+    public static void main(String args[]) {
+      byte b1 = 127;
+      byte b2 = -128;
+      byte b3 = -1;
+
+      System.out.println(b1);
+      System.out.println(b2);
+      System.out.println(b3);
+      System.out.println(unsignedByteToInt(b1));
+      System.out.println(unsignedByteToInt(b2));
+      System.out.println(unsignedByteToInt(b3));
+    /*
+    127
+    -128
+    -1
+    127
+    128
+    255
+    */
+    }
+
+    public static int unsignedByteToInt(byte b) {
+      return (int) b & 0xFF;
+    }
+
+  }
+
+  // https://github.com/Ficat/EasyBle
+  private void initBleManager() {
+    //check if this android device supports ble
+    if (!BleManager.supportBle(this)) {
+      return;
+    }
+    //open bluetooth without a request dialog
+    BleManager.toggleBluetooth(true);
+
+    BleManager.ScanOptions scanOptions = BleManager.ScanOptions
+        .newInstance()
+        .scanPeriod(8000)
+        .scanDeviceName(null);
+
+    BleManager.ConnectOptions connectOptions = BleManager.ConnectOptions
+        .newInstance()
+        .connectTimeout(12000);
+
+    manager = BleManager
+        .getInstance()
+        .setScanOptions(scanOptions)
+        .setConnectionOptions(connectOptions)
+        .setLog(true, "TAG")
+        .init(this.getApplication());
+
+
+    // connect
+
+
+// #define SERVICE_UUID           "6e400001-b5a3-f393-e0a9-e50e24dcca9e" // UART service UUID
+// #define CHARACTERISTIC_UUID_RX "6e400002-b5a3-f393-e0a9-e50e24dcca9e"
+// #define CHARACTERISTIC_UUID_TX "6e400003-b5a3-f393-e0a9-e50e24dcca9e"
+
+// #define SERVICE_UUID           "6E400001-B5A3-F393-E0A9-E50E24DCCA9E" // UART service UUID
+// #define CHARACTERISTIC_UUID_RX "6E400002-B5A3-F393-E0A9-E50E24DCCA9E"
+// #define CHARACTERISTIC_UUID_TX "6E400003-B5A3-F393-E0A9-E50E24DCCA9E" // this one
+
+    String serviceUuid = "6E400001-B5A3-F393-E0A9-E50E24DCCA9E";
+    String writeUuid = "6E400002-B5A3-F393-E0A9-E50E24DCCA9E";
+    String notifyUuid = "6E400003-B5A3-F393-E0A9-E50E24DCCA9E";
+
+    BleConnectCallback bleConnectCallback = new BleConnectCallback() {
+      @Override
+      public void onStart(boolean startConnectSuccess, String info, BleDevice device) {
+        if (startConnectSuccess) {
+          //start to connect successfully
+        } else {
+          //fail to start connection, see details from 'info'
+          String failReason = info;
+        }
+      }
+
+      @Override
+      public void onFailure(int failCode, String info, BleDevice device) {
+        if (failCode == BleConnectCallback.FAIL_CONNECT_TIMEOUT) {
+          //connection timeout
+        } else {
+          //connection fail due to other reasons
+        }
+      }
+
+
+      @Override
+      public void onConnected(BleDevice device) {
+
+//    manager.notify(bleDevice, serviceUuid, notifyUuid, new BleNotifyCallback() {
+        manager.notify(device, serviceUuid, notifyUuid, new BleNotifyCallback() {
+
+          @Override
+          public void onCharacteristicChanged(byte[] d, BleDevice dev) {
+            int c = d[1],
+                x = UnsignedByte.unsignedByteToInt(d[2]),
+                y = UnsignedByte.unsignedByteToInt(d[3]),
+                z = UnsignedByte.unsignedByteToInt(d[4]),
+                b1 = d[5],
+                b2 = d[6];
+            String t = "rec notif data: " + "l: " + d.length + " C " + c + " X " + x + " Y " + y + " Z " + z;
+            //      eye_offsets[0] += 0.001;
+            System.out.println(t);
+            if (x == 255) {
+              head_offset[0] -= 0.05;
+            } else if (x == 0) {
+              head_offset[0] += 0.05;
+            }
+            if (y == 255) {
+              head_offset[1] -= 0.05;
+            } else if (y == 0) {
+              head_offset[1] += 0.05;
+            }
+
+            //    TextView txtMtu = findViewById(R.id.txt_notify);
+//            TextView txtMtu = findViewById(R.id.txt_notify);
+//            txtMtu.setText(t);
+          }
+
+          @Override
+          public void onNotifySuccess(String notifySuccessUuid, BleDevice device) {
+          }
+
+          @Override
+          public void onFailure(int failCode, String info, BleDevice device) {
+            switch (failCode) {
+              case BleCallback.FAIL_DISCONNECTED://connection has disconnected
+                break;
+              case BleCallback.FAIL_OTHER://other reason
+                break;
+              default:
+                break;
+            }
+
+          }
+        });
+
+        /*
+        String data = "test";
+        manager.write(device, serviceUuid, writeUuid, data.getBytes(), new BleWriteCallback() {
+          @Override
+          public void onWriteSuccess(byte[] data, BleDevice device) {
+          }
+
+          @Override
+          public void onFailure(int failCode, String info, BleDevice device) {
+          }
+        });
+         */
+      }
+
+
+      @Override
+      public void onDisconnected(String info, int status, BleDevice device) {
+      }
+    };
+
+//    manager.connect(bleDevice, bleConnectCallback);
+    // connect with specified connectOptions
+//    manager.connect(bleDevice, connectOptions, bleConnectCallback);
+
+    // connect with mac address
+//    manager.connect(address, bleConnectCallback);
+//    manager.connect(address, connectOptions, bleConnectCallback);
+
+    Log.i("BLE", "manager.connect");
+    manager.connect("30:AE:A4:FE:53:A6", connectOptions, bleConnectCallback);
+    Log.i("BLE", "manager.connected");
+
+  }
+
   @SuppressLint("ClickableViewAccessibility")
   @Override
   public void onCreate(Bundle savedInstance) {
     super.onCreate(savedInstance);
+    initBleManager();
 
     nativeApp = nativeOnCreate(getAssets());
 
@@ -159,6 +347,8 @@ public class VrActivity extends AppCompatActivity implements PopupMenu.OnMenuIte
     m4x4_modelview_projection_room
   }
 
+  public volatile float[] head_offset = new float[]{.0f, .0f, .0f};
+
   // YetAnotherGLRenderer
   public class YAGLRenderer implements GLSurfaceView.Renderer {
 
@@ -207,9 +397,9 @@ public class VrActivity extends AppCompatActivity implements PopupMenu.OnMenuIte
       hv.drawWholeHand(o);
     }
 
+
     public void drawEyesView() {
       GLES20.glClear(GLES20.GL_DEPTH_BUFFER_BIT);
-
       // Draw eyes views
       int screen_width_ = glView.getWidth();
       int screen_height_ = glView.getHeight();
@@ -222,11 +412,18 @@ public class VrActivity extends AppCompatActivity implements PopupMenu.OnMenuIte
             MatrixId.m2x16_eye_matrices_right.ordinal()
         ));
 
+
         float[] head_view_ = getNativeMatrix(nativeApp, MatrixId.m4x4_head_view.ordinal());
 
         Matrix4f eye_matrix = new Matrix4f(eye_matrices_);
+//        Matrix4f eye_matrix = new Matrix4f(eye_matrix_def.getArray());
+
+//        eye_matrix.translate(eye_offsets[0], eye_offsets[1], eye_offsets[2]);
+
         Matrix4f eye_view = new Matrix4f(eye_matrix.getArray());
-        eye_view.multiply(new Matrix4f(head_view_));
+        Matrix4f head_view = new Matrix4f(head_view_);
+        head_view.translate(head_offset[0], head_offset[1], head_offset[2]);
+        eye_view.multiply(head_view);
 
         float[] projection_matrices_ = getNativeMatrix(nativeApp, (eye == 0 ?
             MatrixId.m2x16_projection_matrices_left.ordinal() :
@@ -255,7 +452,7 @@ public class VrActivity extends AppCompatActivity implements PopupMenu.OnMenuIte
       l.setMvpMatrix(modelview_projection_target_.getArray().clone());
       o.setMvpMatrix(modelview_projection_target_.getArray().clone());
 
-        float angle = 0.09f * ((int) SystemClock.uptimeMillis() % 4000L);
+      float angle = 0.09f * ((int) SystemClock.uptimeMillis() % 4000L);
 //      float angle = 30;
 
       // Rotate

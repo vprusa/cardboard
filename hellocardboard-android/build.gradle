@@ -47,6 +47,7 @@ android {
 
 repositories {
     mavenLocal()
+    maven { url 'https://jitpack.io' }
 }
 
 dependencies {
@@ -61,6 +62,8 @@ dependencies {
 //    implementation 'cz.muni.fi.gag.web:gag-web-scala:1.0-SNAPSHOT'
 //    compile 'com.android.support:support-annotations:22.2.0'
     implementation 'cz.muni.fi.gag.web:gag-web-scala-shared_2.11:1.0-SNAPSHOT'
+
+    implementation 'com.github.Ficat:EasyBle:v2.0.1'
 }
 
 // The dependencies for NDK builds live inside the .aar files so they need to
