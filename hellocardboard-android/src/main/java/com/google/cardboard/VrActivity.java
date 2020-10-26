@@ -55,6 +55,8 @@ import cz.muni.fi.gag.web.scala.shared.Hand;
 import cz.muni.fi.gag.web.scala.shared.common.Axis;
 import cz.muni.fi.gag.web.scala.shared.common.Quaternion;
 import cz.muni.fi.gag.web.scala.shared.visualization.HandVisualization;
+import scala.Array;
+import scala.collection.mutable.ArrayBuffer;
 
 /**
  * A Google Cardboard VR NDK sample application.
@@ -83,7 +85,7 @@ public class VrActivity extends AppCompatActivity implements PopupMenu.OnMenuIte
   private BleManager manager;
 
   // TODO deal with this on ESP32's side
-  //  Tts like the knowledge after the first semester on FIT and still I am too lazy
+  //  Its like the knowledge after the first semester on FIT and still I am too lazy
   //  to think it on my own when there is a solution on the internet
   // https://www.rgagnon.com/javadetails/java-0026.html
   public static class UnsignedByte {
@@ -116,11 +118,11 @@ public class VrActivity extends AppCompatActivity implements PopupMenu.OnMenuIte
 
   // https://github.com/Ficat/EasyBle
   private void initBleManager() {
-    //check if this android device supports ble
+    // check if this android device supports ble
     if (!BleManager.supportBle(this)) {
       return;
     }
-    //open bluetooth without a request dialog
+    // open bluetooth without a request dialog
     BleManager.toggleBluetooth(true);
 
     BleManager.ScanOptions scanOptions = BleManager.ScanOptions
@@ -130,7 +132,7 @@ public class VrActivity extends AppCompatActivity implements PopupMenu.OnMenuIte
 
     BleManager.ConnectOptions connectOptions = BleManager.ConnectOptions
         .newInstance()
-        .connectTimeout(12000);
+        .connectTimeout(6000);
 
     manager = BleManager
         .getInstance()
@@ -139,9 +141,7 @@ public class VrActivity extends AppCompatActivity implements PopupMenu.OnMenuIte
         .setLog(true, "TAG")
         .init(this.getApplication());
 
-
     // connect
-
 
 // #define SERVICE_UUID           "6e400001-b5a3-f393-e0a9-e50e24dcca9e" // UART service UUID
 // #define CHARACTERISTIC_UUID_RX "6e400002-b5a3-f393-e0a9-e50e24dcca9e"
@@ -154,6 +154,8 @@ public class VrActivity extends AppCompatActivity implements PopupMenu.OnMenuIte
     String serviceUuid = "6E400001-B5A3-F393-E0A9-E50E24DCCA9E";
     String writeUuid = "6E400002-B5A3-F393-E0A9-E50E24DCCA9E";
     String notifyUuid = "6E400003-B5A3-F393-E0A9-E50E24DCCA9E";
+//    String address = "30:AE:A4:FE:53:A6";
+    String address = "30:AE:A4:FF:1B:A2";
 
     BleConnectCallback bleConnectCallback = new BleConnectCallback() {
       @Override
@@ -175,13 +177,105 @@ public class VrActivity extends AppCompatActivity implements PopupMenu.OnMenuIte
         }
       }
 
-
       @Override
       public void onConnected(BleDevice device) {
 
 //    manager.notify(bleDevice, serviceUuid, notifyUuid, new BleNotifyCallback() {
         manager.notify(device, serviceUuid, notifyUuid, new BleNotifyCallback() {
+          /*
+#ifdef SEND_ACC
+    #define PACKET_LENGTH 21
+    #define PACKET_COUNTER_POSITION 18
+#else
+    #define PACKET_LENGTH 15
+    #define PACKET_COUNTER_POSITION 10
+#endif
+          uint8_t dataPacket[PACKET_LENGTH] = {'*', 0x99, 0,  0, 0,  0, 0,  0, 0,  0, 0,
+#ifdef SEND_ACC
+            0, 0, 0, 0, 0, 0,
+#endif
+            0x00, 0x00, '\r', '\n'};
+#endif
 
+          fifoBuffer[1] = qI[0] & 0xFF;
+          fifoBuffer[0] = qI[0]>> 8;
+          fifoBuffer[5] = qI[1] & 0xFF;
+          fifoBuffer[4] = qI[1]>> 8;
+          fifoBuffer[9] = qI[2] & 0xFF;
+          fifoBuffer[8] = qI[2] >> 8;
+          fifoBuffer[13] = qI[3] & 0xFF;
+          fifoBuffer[12] = qI[3] >> 8;
+
+void fifoToPacket(byte * fifoBuffer, byte * packet, int selectedSensor) {
+    //DEBUG_PRINTLN("fifoToPacket");
+    packet[2] = selectedSensor;
+    packet[3] = fifoBuffer[0];
+    packet[4] = fifoBuffer[1];
+    packet[5] = fifoBuffer[4];
+    packet[6] = fifoBuffer[5];
+    packet[7] = fifoBuffer[8];
+    packet[8] = fifoBuffer[9];
+    packet[9] = fifoBuffer[12];
+    packet[10] = fifoBuffer[13];
+
+        uint8_t *fifoBuffer = gyros[selectedSensor].fifoBuffer; // FIFO storage buffer
+}
+       */
+
+//          public float getF(byte b0, byte b1) {
+          public float getF(byte b0, byte b1) {
+//            fifoBuffer[1] = qI[0] & 0xFF;
+//            fifoBuffer[0] = qI[0]>> 8;
+            // TODO
+            short sn = getS(b0, b1);
+            return (float) (((int) sn) / 16384.0);
+//            return (float) (((int)sn)/32768.0);
+          }
+
+          public short getS(byte b0, byte b1) {
+            return (short) ((((short) b0) << 8) + ((short) b1));
+          }
+
+          public int getS2(byte b0, byte b1) {
+            return (((int) new Short((short) ((((short) b0) << 8) + ((short) b1))).intValue()) << 1);
+          }
+
+          @Override
+          public void onCharacteristicChanged(byte[] d, BleDevice dev) {
+            byte p = d[2];
+            /*
+            if (p == 5) {
+              String us = "us: " + getS2(d[3], d[4]) + " " + getS2(d[5], d[6]) + " " + getS2(d[7], d[8]) + " " + getS2(d[9], d[10]) + " ";
+//            float q1 = getF(d[4], d[3]);
+              float w = getF(d[3], d[4]);
+              float x = getF(d[5], d[6]);
+              float y = getF(d[7], d[8]);
+              float z = getF(d[9], d[10]);
+              String s = "wxyz: " + " " + w + " " + x + " " + y + " " + z;
+              Log.i("INFO", us);
+              Log.i("INFO", s);
+              Quaternion q = new Quaternion(w, x, y, z);
+//            q = q.normalize();
+              setHvQ(q,p);
+            }
+             */
+            String us = "us: " + getS2(d[3], d[4]) + " " + getS2(d[5], d[6]) + " " + getS2(d[7], d[8]) + " " + getS2(d[9], d[10]) + " ";
+//            float q1 = getF(d[4], d[3]);
+            float w = getF(d[3], d[4]);
+            float x = getF(d[5], d[6]);
+            float y = getF(d[7], d[8]);
+            float z = getF(d[9], d[10]);
+            String s = "wxyz: " + " " + w + " " + x + " " + y + " " + z;
+            Log.i("INFO", us);
+            Log.i("INFO", s);
+            Quaternion q = new Quaternion(w, x, y, z);
+//            q = q.normalize();
+            setHvQ(q,p);
+//            hv.rotate(q.getYaw(), q.getPitch(), q.getRoll());
+//            hv.littleVis().rotate(q.getYaw(), q.getPitch(), q.getRoll());
+//            hv.rotate();
+          }
+          /*
           @Override
           public void onCharacteristicChanged(byte[] d, BleDevice dev) {
             int c = d[1],
@@ -199,15 +293,15 @@ public class VrActivity extends AppCompatActivity implements PopupMenu.OnMenuIte
               head_offset[0] += 0.05;
             }
             if (y == 255) {
-              head_offset[1] -= 0.05;
+              head_offset[2] -= 0.05;
             } else if (y == 0) {
-              head_offset[1] += 0.05;
+              head_offset[2] += 0.05;
             }
 
-            //    TextView txtMtu = findViewById(R.id.txt_notify);
 //            TextView txtMtu = findViewById(R.id.txt_notify);
 //            txtMtu.setText(t);
           }
+           */
 
           @Override
           public void onNotifySuccess(String notifySuccessUuid, BleDevice device) {
@@ -244,7 +338,9 @@ public class VrActivity extends AppCompatActivity implements PopupMenu.OnMenuIte
 
       @Override
       public void onDisconnected(String info, int status, BleDevice device) {
+        Log.i("DISC", info + "; status: " + status);
       }
+
     };
 
 //    manager.connect(bleDevice, bleConnectCallback);
@@ -256,7 +352,10 @@ public class VrActivity extends AppCompatActivity implements PopupMenu.OnMenuIte
 //    manager.connect(address, connectOptions, bleConnectCallback);
 
     Log.i("BLE", "manager.connect");
-    manager.connect("30:AE:A4:FE:53:A6", connectOptions, bleConnectCallback);
+    if (manager.isConnected(address)) {
+      manager.disconnect(address);
+    }
+    manager.connect(address, connectOptions, bleConnectCallback);
     Log.i("BLE", "manager.connected");
 
   }
@@ -348,6 +447,17 @@ public class VrActivity extends AppCompatActivity implements PopupMenu.OnMenuIte
   }
 
   public volatile float[] head_offset = new float[]{.0f, .0f, .0f};
+  public volatile HandVisualization hv;
+
+  public volatile Quaternion[] hvQ = new Quaternion[6];
+
+  public synchronized Quaternion getHvQ(byte i) {
+    return hvQ[i];
+  }
+
+  public synchronized void setHvQ(Quaternion hvQ, byte i) {
+    this.hvQ[i] = hvQ;
+  }
 
   // YetAnotherGLRenderer
   public class YAGLRenderer implements GLSurfaceView.Renderer {
@@ -356,7 +466,7 @@ public class VrActivity extends AppCompatActivity implements PopupMenu.OnMenuIte
     private Line l2;
     private Line l3;
     private Line l4;
-    private HandVisualization hv;
+    private Rectangle r1;
     private My3DObjectWithProps o;
     private Quaternion eq;
 
@@ -412,12 +522,10 @@ public class VrActivity extends AppCompatActivity implements PopupMenu.OnMenuIte
             MatrixId.m2x16_eye_matrices_right.ordinal()
         ));
 
-
         float[] head_view_ = getNativeMatrix(nativeApp, MatrixId.m4x4_head_view.ordinal());
 
         Matrix4f eye_matrix = new Matrix4f(eye_matrices_);
 //        Matrix4f eye_matrix = new Matrix4f(eye_matrix_def.getArray());
-
 //        eye_matrix.translate(eye_offsets[0], eye_offsets[1], eye_offsets[2]);
 
         Matrix4f eye_view = new Matrix4f(eye_matrix.getArray());
@@ -472,15 +580,36 @@ public class VrActivity extends AppCompatActivity implements PopupMenu.OnMenuIte
       //  i may not understand smth crucial here and now im too lazy to deal with that..
       long time = SystemClock.uptimeMillis() % 3600;
       float angle2 = 4000.f / (((int) time));
-      eq = new Quaternion(1.0f, 0.0f, 0.0f, angle2);
-      o.rotate(eq);
-      hv.littleVis().rotateZ(30);
+//      eq = new Quaternion(1.0f, 0.0f, 0.0f, angle2);
+//      o.rotate(eq);
+//      synchronized (hvQ){
+      if (hvQ != null) {
+
+        eq = getHvQ((byte) 5);
+        eq = eq.multiply(new Quaternion(1.0f, 0.0f, 0.0f, 3.f));
+//        o.rotate(getHvQ((byte) 5));
+//        o.rotate(0.3f, Axis.Y());
+        o.rotate(eq);
+        hv.thumbVis().rotate(getHvQ((byte) 4));
+        hv.indexVis().rotate(getHvQ((byte) 3));
+        hv.middleVis().rotate(getHvQ((byte) 2));
+        hv.ringVis().rotate(getHvQ((byte) 1));
+        hv.littleVis().rotate(getHvQ((byte) 0));
+//        o.rotate(getHvQ((byte) 5));
+      } else {
+        eq = new Quaternion(1.0f, 0.0f, 0.0f, 0.5f);
+        o.rotate(eq);
+      }
+
+//      o.rotate((float) Math.PI/2, Axis.Y());
+//      hv.littleVis().rotateZ(30);
       // right hand
-      hv.rotateY(180);
+//      hv.rotateY(90);
+//      hv.rotateY(180);
+//      hv.rotateZ(90);
 
       o.draw();
     }
-
 
     public void onDrawFrame(GL10 unused) {
       nativeOnDrawFrame(nativeApp);
